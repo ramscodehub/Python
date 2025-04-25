@@ -3,7 +3,7 @@
 """
 
 
-def miller_rabin(n, allow_probable=False):
+def miller_rabin(n: int, allow_probable: bool = False) -> bool:
     """Deterministic Miller-Rabin algorithm for primes ~< 3.32e24.
 
     Uses numerical analysis results to return whether or not the passed number
@@ -73,7 +73,7 @@ def miller_rabin(n, allow_probable=False):
     for prime in plist:
         pr = False
         for r in range(s):
-            m = pow(prime, d * 2 ** r, n)
+            m = pow(prime, d * 2**r, n)
             # see article for analysis explanation for m
             if (r == 0 and m == 1) or ((m + 1) % n == 0):
                 pr = True
@@ -87,7 +87,7 @@ def miller_rabin(n, allow_probable=False):
     return True
 
 
-def test_miller_rabin():
+def test_miller_rabin() -> None:
     """Testing a nontrivial (ends in 1, 3, 7, 9) composite
     and a prime in each range.
     """

@@ -7,22 +7,28 @@ python -m unittest binary_search_tree_recursive.py
 To run an example:
 python binary_search_tree_recursive.py
 """
+
+from __future__ import annotations
+
 import unittest
+from collections.abc import Iterator
+
+import pytest
 
 
 class Node:
-    def __init__(self, label: int, parent):
+    def __init__(self, label: int, parent: Node | None) -> None:
         self.label = label
         self.parent = parent
-        self.left = None
-        self.right = None
+        self.left: Node | None = None
+        self.right: Node | None = None
 
 
 class BinarySearchTree:
-    def __init__(self):
-        self.root = None
+    def __init__(self) -> None:
+        self.root: Node | None = None
 
-    def empty(self):
+    def empty(self) -> None:
         """
         Empties the tree
 
@@ -46,7 +52,7 @@ class BinarySearchTree:
         """
         return self.root is None
 
-    def put(self, label: int):
+    def put(self, label: int) -> None:
         """
         Put a new node in the tree
 
@@ -65,16 +71,16 @@ class BinarySearchTree:
         """
         self.root = self._put(self.root, label)
 
-    def _put(self, node: Node, label: int, parent: Node = None) -> Node:
+    def _put(self, node: Node | None, label: int, parent: Node | None = None) -> Node:
         if node is None:
             node = Node(label, parent)
+        elif label < node.label:
+            node.left = self._put(node.left, label, node)
+        elif label > node.label:
+            node.right = self._put(node.right, label, node)
         else:
-            if label < node.label:
-                node.left = self._put(node.left, label, node)
-            elif label > node.label:
-                node.right = self._put(node.right, label, node)
-            else:
-                raise Exception(f"Node with label {label} already exists")
+            msg = f"Node with label {label} already exists"
+            raise ValueError(msg)
 
         return node
 
@@ -91,22 +97,22 @@ class BinarySearchTree:
         >>> node = t.search(3)
         Traceback (most recent call last):
             ...
-        Exception: Node with label 3 does not exist
+        ValueError: Node with label 3 does not exist
         """
         return self._search(self.root, label)
 
-    def _search(self, node: Node, label: int) -> Node:
+    def _search(self, node: Node | None, label: int) -> Node:
         if node is None:
-            raise Exception(f"Node with label {label} does not exist")
-        else:
-            if label < node.label:
-                node = self._search(node.left, label)
-            elif label > node.label:
-                node = self._search(node.right, label)
+            msg = f"Node with label {label} does not exist"
+            raise ValueError(msg)
+        elif label < node.label:
+            node = self._search(node.left, label)
+        elif label > node.label:
+            node = self._search(node.right, label)
 
         return node
 
-    def remove(self, label: int):
+    def remove(self, label: int) -> None:
         """
         Removes a node in the tree
 
@@ -119,16 +125,10 @@ class BinarySearchTree:
         >>> t.remove(3)
         Traceback (most recent call last):
             ...
-        Exception: Node with label 3 does not exist
+        ValueError: Node with label 3 does not exist
         """
         node = self.search(label)
-        if not node.right and not node.left:
-            self._reassign_nodes(node, None)
-        elif not node.right and node.left:
-            self._reassign_nodes(node, node.left)
-        elif node.right and not node.left:
-            self._reassign_nodes(node, node.right)
-        else:
+        if node.right and node.left:
             lowest_node = self._get_lowest_node(node.right)
             lowest_node.left = node.left
             lowest_node.right = node.right
@@ -136,8 +136,14 @@ class BinarySearchTree:
             if node.right:
                 node.right.parent = lowest_node
             self._reassign_nodes(node, lowest_node)
+        elif not node.right and node.left:
+            self._reassign_nodes(node, node.left)
+        elif node.right and not node.left:
+            self._reassign_nodes(node, node.right)
+        else:
+            self._reassign_nodes(node, None)
 
-    def _reassign_nodes(self, node: Node, new_children: Node):
+    def _reassign_nodes(self, node: Node, new_children: Node | None) -> None:
         if new_children:
             new_children.parent = node.parent
 
@@ -174,7 +180,7 @@ class BinarySearchTree:
         try:
             self.search(label)
             return True
-        except Exception:
+        except ValueError:
             return False
 
     def get_max_label(self) -> int:
@@ -185,15 +191,15 @@ class BinarySearchTree:
         >>> t.get_max_label()
         Traceback (most recent call last):
             ...
-        Exception: Binary search tree is empty
+        ValueError: Binary search tree is empty
 
         >>> t.put(8)
         >>> t.put(10)
         >>> t.get_max_label()
         10
         """
-        if self.is_empty():
-            raise Exception("Binary search tree is empty")
+        if self.root is None:
+            raise ValueError("Binary search tree is empty")
 
         node = self.root
         while node.right is not None:
@@ -209,15 +215,15 @@ class BinarySearchTree:
         >>> t.get_min_label()
         Traceback (most recent call last):
             ...
-        Exception: Binary search tree is empty
+        ValueError: Binary search tree is empty
 
         >>> t.put(8)
         >>> t.put(10)
         >>> t.get_min_label()
         8
         """
-        if self.is_empty():
-            raise Exception("Binary search tree is empty")
+        if self.root is None:
+            raise ValueError("Binary search tree is empty")
 
         node = self.root
         while node.left is not None:
@@ -225,7 +231,7 @@ class BinarySearchTree:
 
         return node.label
 
-    def inorder_traversal(self) -> list:
+    def inorder_traversal(self) -> Iterator[Node]:
         """
         Return the inorder traversal of the tree
 
@@ -241,13 +247,13 @@ class BinarySearchTree:
         """
         return self._inorder_traversal(self.root)
 
-    def _inorder_traversal(self, node: Node) -> list:
+    def _inorder_traversal(self, node: Node | None) -> Iterator[Node]:
         if node is not None:
             yield from self._inorder_traversal(node.left)
             yield node
             yield from self._inorder_traversal(node.right)
 
-    def preorder_traversal(self) -> list:
+    def preorder_traversal(self) -> Iterator[Node]:
         """
         Return the preorder traversal of the tree
 
@@ -263,7 +269,7 @@ class BinarySearchTree:
         """
         return self._preorder_traversal(self.root)
 
-    def _preorder_traversal(self, node: Node) -> list:
+    def _preorder_traversal(self, node: Node | None) -> Iterator[Node]:
         if node is not None:
             yield node
             yield from self._preorder_traversal(node.left)
@@ -272,7 +278,7 @@ class BinarySearchTree:
 
 class BinarySearchTreeTest(unittest.TestCase):
     @staticmethod
-    def _get_binary_search_tree():
+    def _get_binary_search_tree() -> BinarySearchTree:
         r"""
               8
              / \
@@ -298,7 +304,7 @@ class BinarySearchTreeTest(unittest.TestCase):
 
         return t
 
-    def test_put(self):
+    def test_put(self) -> None:
         t = BinarySearchTree()
         assert t.is_empty()
 
@@ -306,6 +312,7 @@ class BinarySearchTreeTest(unittest.TestCase):
         r"""
               8
         """
+        assert t.root is not None
         assert t.root.parent is None
         assert t.root.label == 8
 
@@ -315,6 +322,7 @@ class BinarySearchTreeTest(unittest.TestCase):
                \
                 10
         """
+        assert t.root.right is not None
         assert t.root.right.parent == t.root
         assert t.root.right.label == 10
 
@@ -324,6 +332,7 @@ class BinarySearchTreeTest(unittest.TestCase):
              / \
             3   10
         """
+        assert t.root.left is not None
         assert t.root.left.parent == t.root
         assert t.root.left.label == 3
 
@@ -335,6 +344,7 @@ class BinarySearchTreeTest(unittest.TestCase):
              \
               6
         """
+        assert t.root.left.right is not None
         assert t.root.left.right.parent == t.root.left
         assert t.root.left.right.label == 6
 
@@ -346,13 +356,14 @@ class BinarySearchTreeTest(unittest.TestCase):
            / \
           1   6
         """
+        assert t.root.left.left is not None
         assert t.root.left.left.parent == t.root.left
         assert t.root.left.left.label == 1
 
-        with self.assertRaises(Exception):
+        with pytest.raises(ValueError):
             t.put(1)
 
-    def test_search(self):
+    def test_search(self) -> None:
         t = self._get_binary_search_tree()
 
         node = t.search(6)
@@ -361,10 +372,10 @@ class BinarySearchTreeTest(unittest.TestCase):
         node = t.search(13)
         assert node.label == 13
 
-        with self.assertRaises(Exception):
+        with pytest.raises(ValueError):
             t.search(2)
 
-    def test_remove(self):
+    def test_remove(self) -> None:
         t = self._get_binary_search_tree()
 
         t.remove(13)
@@ -379,6 +390,9 @@ class BinarySearchTreeTest(unittest.TestCase):
              \
               5
         """
+        assert t.root is not None
+        assert t.root.right is not None
+        assert t.root.right.right is not None
         assert t.root.right.right.right is None
         assert t.root.right.right.left is None
 
@@ -394,6 +408,9 @@ class BinarySearchTreeTest(unittest.TestCase):
              \
               5
         """
+        assert t.root.left is not None
+        assert t.root.left.right is not None
+        assert t.root.left.right.left is not None
         assert t.root.left.right.right is None
         assert t.root.left.right.left.label == 4
 
@@ -407,6 +424,8 @@ class BinarySearchTreeTest(unittest.TestCase):
                \
                 5
         """
+        assert t.root.left.left is not None
+        assert t.root.left.right.right is not None
         assert t.root.left.left.label == 1
         assert t.root.left.right.label == 4
         assert t.root.left.right.right.label == 5
@@ -422,6 +441,7 @@ class BinarySearchTreeTest(unittest.TestCase):
            / \    \
           1   5    14
         """
+        assert t.root is not None
         assert t.root.left.label == 4
         assert t.root.left.right.label == 5
         assert t.root.left.left.label == 1
@@ -437,13 +457,15 @@ class BinarySearchTreeTest(unittest.TestCase):
            /      \
           1        14
         """
+        assert t.root.left is not None
+        assert t.root.left.left is not None
         assert t.root.left.label == 5
         assert t.root.left.right is None
         assert t.root.left.left.label == 1
         assert t.root.left.parent == t.root
         assert t.root.left.left.parent == t.root.left
 
-    def test_remove_2(self):
+    def test_remove_2(self) -> None:
         t = self._get_binary_search_tree()
 
         t.remove(3)
@@ -456,6 +478,12 @@ class BinarySearchTreeTest(unittest.TestCase):
              / \   /
             5   7 13
         """
+        assert t.root is not None
+        assert t.root.left is not None
+        assert t.root.left.left is not None
+        assert t.root.left.right is not None
+        assert t.root.left.right.left is not None
+        assert t.root.left.right.right is not None
         assert t.root.left.label == 4
         assert t.root.left.right.label == 6
         assert t.root.left.left.label == 1
@@ -466,56 +494,56 @@ class BinarySearchTreeTest(unittest.TestCase):
         assert t.root.left.left.parent == t.root.left
         assert t.root.left.right.left.parent == t.root.left.right
 
-    def test_empty(self):
+    def test_empty(self) -> None:
         t = self._get_binary_search_tree()
         t.empty()
         assert t.root is None
 
-    def test_is_empty(self):
+    def test_is_empty(self) -> None:
         t = self._get_binary_search_tree()
         assert not t.is_empty()
 
         t.empty()
         assert t.is_empty()
 
-    def test_exists(self):
+    def test_exists(self) -> None:
         t = self._get_binary_search_tree()
 
         assert t.exists(6)
         assert not t.exists(-1)
 
-    def test_get_max_label(self):
+    def test_get_max_label(self) -> None:
         t = self._get_binary_search_tree()
 
         assert t.get_max_label() == 14
 
         t.empty()
-        with self.assertRaises(Exception):
+        with pytest.raises(ValueError):
             t.get_max_label()
 
-    def test_get_min_label(self):
+    def test_get_min_label(self) -> None:
         t = self._get_binary_search_tree()
 
         assert t.get_min_label() == 1
 
         t.empty()
-        with self.assertRaises(Exception):
+        with pytest.raises(ValueError):
             t.get_min_label()
 
-    def test_inorder_traversal(self):
+    def test_inorder_traversal(self) -> None:
         t = self._get_binary_search_tree()
 
         inorder_traversal_nodes = [i.label for i in t.inorder_traversal()]
         assert inorder_traversal_nodes == [1, 3, 4, 5, 6, 7, 8, 10, 13, 14]
 
-    def test_preorder_traversal(self):
+    def test_preorder_traversal(self) -> None:
         t = self._get_binary_search_tree()
 
         preorder_traversal_nodes = [i.label for i in t.preorder_traversal()]
         assert preorder_traversal_nodes == [8, 3, 1, 6, 4, 5, 7, 10, 14, 13]
 
 
-def binary_search_tree_example():
+def binary_search_tree_example() -> None:
     r"""
     Example
                   8

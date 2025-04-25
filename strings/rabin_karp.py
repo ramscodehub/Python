@@ -4,7 +4,7 @@ alphabet_size = 256
 modulus = 1000003
 
 
-def rabin_karp(pattern, text):
+def rabin_karp(pattern: str, text: str) -> bool:
     """
     The Rabin-Karp Algorithm for finding a pattern within a piece of text
     with complexity O(nm), most efficient when it is used with multiple patterns
@@ -38,7 +38,7 @@ def rabin_karp(pattern, text):
             continue
         modulus_power = (modulus_power * alphabet_size) % modulus
 
-    for i in range(0, t_len - p_len + 1):
+    for i in range(t_len - p_len + 1):
         if text_hash == p_hash and text[i : i + p_len] == pattern:
             return True
         if i == t_len - p_len:
@@ -51,7 +51,7 @@ def rabin_karp(pattern, text):
     return False
 
 
-def test_rabin_karp():
+def test_rabin_karp() -> None:
     """
     >>> test_rabin_karp()
     Success.
@@ -60,7 +60,8 @@ def test_rabin_karp():
     pattern = "abc1abc12"
     text1 = "alskfjaldsabc1abc1abc12k23adsfabcabc"
     text2 = "alskfjaldsk23adsfabcabc"
-    assert rabin_karp(pattern, text1) and not rabin_karp(pattern, text2)
+    assert rabin_karp(pattern, text1)
+    assert not rabin_karp(pattern, text2)
 
     # Test 2)
     pattern = "ABABX"

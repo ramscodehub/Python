@@ -4,71 +4,71 @@ import sys
 LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 
-def main():
+def main() -> None:
     message = input("Enter message: ")
     key = "LFWOAYUISVKMNXPBDCRJTQEGHZ"
     resp = input("Encrypt/Decrypt [e/d]: ")
 
-    checkValidKey(key)
+    check_valid_key(key)
 
     if resp.lower().startswith("e"):
         mode = "encrypt"
-        translated = encryptMessage(key, message)
+        translated = encrypt_message(key, message)
     elif resp.lower().startswith("d"):
         mode = "decrypt"
-        translated = decryptMessage(key, message)
+        translated = decrypt_message(key, message)
 
-    print("\n{}ion: \n{}".format(mode.title(), translated))
+    print(f"\n{mode.title()}ion: \n{translated}")
 
 
-def checkValidKey(key):
-    keyList = list(key)
-    lettersList = list(LETTERS)
-    keyList.sort()
-    lettersList.sort()
+def check_valid_key(key: str) -> None:
+    key_list = list(key)
+    letters_list = list(LETTERS)
+    key_list.sort()
+    letters_list.sort()
 
-    if keyList != lettersList:
+    if key_list != letters_list:
         sys.exit("Error in the key or symbol set.")
 
 
-def encryptMessage(key, message):
+def encrypt_message(key: str, message: str) -> str:
     """
-    >>> encryptMessage('LFWOAYUISVKMNXPBDCRJTQEGHZ', 'Harshil Darji')
+    >>> encrypt_message('LFWOAYUISVKMNXPBDCRJTQEGHZ', 'Harshil Darji')
     'Ilcrism Olcvs'
     """
-    return translateMessage(key, message, "encrypt")
+    return translate_message(key, message, "encrypt")
 
 
-def decryptMessage(key, message):
+def decrypt_message(key: str, message: str) -> str:
     """
-    >>> decryptMessage('LFWOAYUISVKMNXPBDCRJTQEGHZ', 'Ilcrism Olcvs')
+    >>> decrypt_message('LFWOAYUISVKMNXPBDCRJTQEGHZ', 'Ilcrism Olcvs')
     'Harshil Darji'
     """
-    return translateMessage(key, message, "decrypt")
+    return translate_message(key, message, "decrypt")
 
 
-def translateMessage(key, message, mode):
+def translate_message(key: str, message: str, mode: str) -> str:
     translated = ""
-    charsA = LETTERS
-    charsB = key
+    chars_a = LETTERS
+    chars_b = key
 
     if mode == "decrypt":
-        charsA, charsB = charsB, charsA
+        chars_a, chars_b = chars_b, chars_a
 
     for symbol in message:
-        if symbol.upper() in charsA:
-            symIndex = charsA.find(symbol.upper())
+        if symbol.upper() in chars_a:
+            sym_index = chars_a.find(symbol.upper())
             if symbol.isupper():
-                translated += charsB[symIndex].upper()
+                translated += chars_b[sym_index].upper()
             else:
-                translated += charsB[symIndex].lower()
+                translated += chars_b[sym_index].lower()
         else:
             translated += symbol
 
     return translated
 
 
-def getRandomKey():
+def get_random_key() -> str:
     key = list(LETTERS)
     random.shuffle(key)
     return "".join(key)

@@ -1,7 +1,10 @@
 """
 Scraping jobs given job title and location from indeed website
 """
-from typing import Generator, Tuple
+
+from __future__ import annotations
+
+from collections.abc import Generator
 
 import requests
 from bs4 import BeautifulSoup
@@ -9,8 +12,10 @@ from bs4 import BeautifulSoup
 url = "https://www.indeed.co.in/jobs?q=mobile+app+development&l="
 
 
-def fetch_jobs(location: str = "mumbai") -> Generator[Tuple[str, str], None, None]:
-    soup = BeautifulSoup(requests.get(url + location).content, "html.parser")
+def fetch_jobs(location: str = "mumbai") -> Generator[tuple[str, str]]:
+    soup = BeautifulSoup(
+        requests.get(url + location, timeout=10).content, "html.parser"
+    )
     # This attribute finds out all the specifics listed in a job
     for job in soup.find_all("div", attrs={"data-tn-component": "organicJob"}):
         job_title = job.find("a", attrs={"data-tn-element": "jobTitle"}).text.strip()

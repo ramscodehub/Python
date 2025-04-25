@@ -1,12 +1,13 @@
 """
 References: wikipedia:square free number
-python/black : True
-flake8 : True
+psf/black : True
+ruff : True
 """
-from typing import List
+
+from __future__ import annotations
 
 
-def is_square_free(factors: List[int]) -> bool:
+def is_square_free(factors: list[int]) -> bool:
     """
     # doctest: +NORMALIZE_WHITESPACE
     This functions takes a list of prime factors as input.
@@ -15,7 +16,7 @@ def is_square_free(factors: List[int]) -> bool:
     False
 
     These are wrong but should return some value
-    it simply checks for repition in the numbers.
+    it simply checks for repetition in the numbers.
     >>> is_square_free([1, 3, 4, 'sd', 0.0])
     True
 

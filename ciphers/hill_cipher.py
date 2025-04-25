@@ -35,23 +35,12 @@ https://www.youtube.com/watch?v=kfmNeskzs2o
 https://www.youtube.com/watch?v=4RhLNDqcjpA
 
 """
+
 import string
 
-import numpy
+import numpy as np
 
-
-def greatest_common_divisor(a: int, b: int) -> int:
-    """
-    >>> greatest_common_divisor(4, 8)
-    4
-    >>> greatest_common_divisor(8, 4)
-    4
-    >>> greatest_common_divisor(4, 7)
-    1
-    >>> greatest_common_divisor(0, 10)
-    10
-    """
-    return b if a == 0 else greatest_common_divisor(b % a, a)
+from maths.greatest_common_divisor import greatest_common_divisor
 
 
 class HillCipher:
@@ -60,22 +49,21 @@ class HillCipher:
     # i.e. a total of 36 characters
 
     # take x and return x % len(key_string)
-    modulus = numpy.vectorize(lambda x: x % 36)
+    modulus = np.vectorize(lambda x: x % 36)
 
-    to_int = numpy.vectorize(lambda x: round(x))
+    to_int = np.vectorize(round)
 
-    def __init__(self, encrypt_key):
+    def __init__(self, encrypt_key: np.ndarray) -> None:
         """
         encrypt_key is an NxN numpy array
         """
         self.encrypt_key = self.modulus(encrypt_key)  # mod36 calc's on the encrypt key
         self.check_determinant()  # validate the determinant of the encryption key
-        self.decrypt_key = None
         self.break_key = encrypt_key.shape[0]
 
     def replace_letters(self, letter: str) -> int:
         """
-        >>> hill_cipher = HillCipher(numpy.array([[2, 5], [1, 6]]))
+        >>> hill_cipher = HillCipher(np.array([[2, 5], [1, 6]]))
         >>> hill_cipher.replace_letters('T')
         19
         >>> hill_cipher.replace_letters('0')
@@ -85,7 +73,7 @@ class HillCipher:
 
     def replace_digits(self, num: int) -> str:
         """
-        >>> hill_cipher = HillCipher(numpy.array([[2, 5], [1, 6]]))
+        >>> hill_cipher = HillCipher(np.array([[2, 5], [1, 6]]))
         >>> hill_cipher.replace_digits(19)
         'T'
         >>> hill_cipher.replace_digits(26)
@@ -95,24 +83,25 @@ class HillCipher:
 
     def check_determinant(self) -> None:
         """
-        >>> hill_cipher = HillCipher(numpy.array([[2, 5], [1, 6]]))
+        >>> hill_cipher = HillCipher(np.array([[2, 5], [1, 6]]))
         >>> hill_cipher.check_determinant()
         """
-        det = round(numpy.linalg.det(self.encrypt_key))
+        det = round(np.linalg.det(self.encrypt_key))
 
         if det < 0:
             det = det % len(self.key_string)
 
         req_l = len(self.key_string)
         if greatest_common_divisor(det, len(self.key_string)) != 1:
-            raise ValueError(
-                f"determinant modular {req_l} of encryption key({det}) is not co prime "
-                f"w.r.t {req_l}.\nTry another key."
+            msg = (
+                f"determinant modular {req_l} of encryption key({det}) "
+                f"is not co prime w.r.t {req_l}.\nTry another key."
             )
+            raise ValueError(msg)
 
     def process_text(self, text: str) -> str:
         """
-        >>> hill_cipher = HillCipher(numpy.array([[2, 5], [1, 6]]))
+        >>> hill_cipher = HillCipher(np.array([[2, 5], [1, 6]]))
         >>> hill_cipher.process_text('Testing Hill Cipher')
         'TESTINGHILLCIPHERR'
         >>> hill_cipher.process_text('hello')
@@ -128,7 +117,7 @@ class HillCipher:
 
     def encrypt(self, text: str) -> str:
         """
-        >>> hill_cipher = HillCipher(numpy.array([[2, 5], [1, 6]]))
+        >>> hill_cipher = HillCipher(np.array([[2, 5], [1, 6]]))
         >>> hill_cipher.encrypt('testing hill cipher')
         'WHXYJOLM9C6XT085LL'
         >>> hill_cipher.encrypt('hello')
@@ -139,8 +128,8 @@ class HillCipher:
 
         for i in range(0, len(text) - self.break_key + 1, self.break_key):
             batch = text[i : i + self.break_key]
-            batch_vec = [self.replace_letters(char) for char in batch]
-            batch_vec = numpy.array([batch_vec]).T
+            vec = [self.replace_letters(char) for char in batch]
+            batch_vec = np.array([vec]).T
             batch_encrypted = self.modulus(self.encrypt_key.dot(batch_vec)).T.tolist()[
                 0
             ]
@@ -151,14 +140,14 @@ class HillCipher:
 
         return encrypted
 
-    def make_decrypt_key(self):
+    def make_decrypt_key(self) -> np.ndarray:
         """
-        >>> hill_cipher = HillCipher(numpy.array([[2, 5], [1, 6]]))
+        >>> hill_cipher = HillCipher(np.array([[2, 5], [1, 6]]))
         >>> hill_cipher.make_decrypt_key()
-        array([[ 6., 25.],
-               [ 5., 26.]])
+        array([[ 6, 25],
+               [ 5, 26]])
         """
-        det = round(numpy.linalg.det(self.encrypt_key))
+        det = round(np.linalg.det(self.encrypt_key))
 
         if det < 0:
             det = det % len(self.key_string)
@@ -169,32 +158,28 @@ class HillCipher:
                 break
 
         inv_key = (
-            det_inv
-            * numpy.linalg.det(self.encrypt_key)
-            * numpy.linalg.inv(self.encrypt_key)
+            det_inv * np.linalg.det(self.encrypt_key) * np.linalg.inv(self.encrypt_key)
         )
 
         return self.to_int(self.modulus(inv_key))
 
     def decrypt(self, text: str) -> str:
         """
-        >>> hill_cipher = HillCipher(numpy.array([[2, 5], [1, 6]]))
+        >>> hill_cipher = HillCipher(np.array([[2, 5], [1, 6]]))
         >>> hill_cipher.decrypt('WHXYJOLM9C6XT085LL')
         'TESTINGHILLCIPHERR'
         >>> hill_cipher.decrypt('85FF00')
         'HELLOO'
         """
-        self.decrypt_key = self.make_decrypt_key()
+        decrypt_key = self.make_decrypt_key()
         text = self.process_text(text.upper())
         decrypted = ""
 
         for i in range(0, len(text) - self.break_key + 1, self.break_key):
             batch = text[i : i + self.break_key]
-            batch_vec = [self.replace_letters(char) for char in batch]
-            batch_vec = numpy.array([batch_vec]).T
-            batch_decrypted = self.modulus(self.decrypt_key.dot(batch_vec)).T.tolist()[
-                0
-            ]
+            vec = [self.replace_letters(char) for char in batch]
+            batch_vec = np.array([vec]).T
+            batch_decrypted = self.modulus(decrypt_key.dot(batch_vec)).T.tolist()[0]
             decrypted_batch = "".join(
                 self.replace_digits(num) for num in batch_decrypted
             )
@@ -203,16 +188,16 @@ class HillCipher:
         return decrypted
 
 
-def main():
-    N = int(input("Enter the order of the encryption key: "))
+def main() -> None:
+    n = int(input("Enter the order of the encryption key: "))
     hill_matrix = []
 
     print("Enter each row of the encryption key with space separated integers")
-    for i in range(N):
+    for _ in range(n):
         row = [int(x) for x in input().split()]
         hill_matrix.append(row)
 
-    hc = HillCipher(numpy.array(hill_matrix))
+    hc = HillCipher(np.array(hill_matrix))
 
     print("Would you like to encrypt or decrypt some text? (1 or 2)")
     option = input("\n1. Encrypt\n2. Decrypt\n")

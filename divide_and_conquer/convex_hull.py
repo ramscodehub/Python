@@ -13,6 +13,10 @@ which have not been implemented here, yet.
 
 """
 
+from __future__ import annotations
+
+from collections.abc import Iterable
+
 
 class Point:
     """
@@ -81,7 +85,9 @@ class Point:
         return hash(self.x)
 
 
-def _construct_points(list_of_tuples):
+def _construct_points(
+    list_of_tuples: list[Point] | list[list[float]] | Iterable[list[float]],
+) -> list[Point]:
     """
     constructs a list of points from an array-like object of numbers
 
@@ -110,20 +116,23 @@ def _construct_points(list_of_tuples):
     []
     """
 
-    points = []
+    points: list[Point] = []
     if list_of_tuples:
         for p in list_of_tuples:
-            try:
-                points.append(Point(p[0], p[1]))
-            except (IndexError, TypeError):
-                print(
-                    f"Ignoring deformed point {p}. All points"
-                    " must have at least 2 coordinates."
-                )
+            if isinstance(p, Point):
+                points.append(p)
+            else:
+                try:
+                    points.append(Point(p[0], p[1]))
+                except (IndexError, TypeError):
+                    print(
+                        f"Ignoring deformed point {p}. All points"
+                        " must have at least 2 coordinates."
+                    )
     return points
 
 
-def _validate_input(points):
+def _validate_input(points: list[Point] | list[list[float]]) -> list[Point]:
     """
     validates an input instance before a convex-hull algorithms uses it
 
@@ -165,33 +174,18 @@ def _validate_input(points):
     ValueError: Expecting an iterable object but got an non-iterable type 1
     """
 
+    if not hasattr(points, "__iter__"):
+        msg = f"Expecting an iterable object but got an non-iterable type {points}"
+        raise ValueError(msg)
+
     if not points:
-        raise ValueError(f"Expecting a list of points but got {points}")
+        msg = f"Expecting a list of points but got {points}"
+        raise ValueError(msg)
 
-    if isinstance(points, set):
-        points = list(points)
-
-    try:
-        if hasattr(points, "__iter__") and not isinstance(points[0], Point):
-            if isinstance(points[0], (list, tuple)):
-                points = _construct_points(points)
-            else:
-                raise ValueError(
-                    "Expecting an iterable of type Point, list or tuple. "
-                    f"Found objects of type {type(points[0])} instead"
-                )
-        elif not hasattr(points, "__iter__"):
-            raise ValueError(
-                f"Expecting an iterable object but got an non-iterable type {points}"
-            )
-    except TypeError:
-        print("Expecting an iterable of type Point, list or tuple.")
-        raise
-
-    return points
+    return _construct_points(points)
 
 
-def _det(a, b, c):
+def _det(a: Point, b: Point, c: Point) -> float:
     """
     Computes the sign perpendicular distance of a 2d point c from a line segment
     ab. The sign indicates the direction of c relative to ab.
@@ -226,7 +220,7 @@ def _det(a, b, c):
     return det
 
 
-def convex_hull_bf(points):
+def convex_hull_bf(points: list[Point]) -> list[Point]:
     """
     Constructs the convex hull of a set of 2D points using a brute force algorithm.
     The algorithm basically considers all combinations of points (i, j) and uses the
@@ -273,21 +267,20 @@ def convex_hull_bf(points):
             points_left_of_ij = points_right_of_ij = False
             ij_part_of_convex_hull = True
             for k in range(n):
-                if k != i and k != j:
+                if k not in {i, j}:
                     det_k = _det(points[i], points[j], points[k])
 
                     if det_k > 0:
                         points_left_of_ij = True
                     elif det_k < 0:
                         points_right_of_ij = True
-                    else:
-                        # point[i], point[j], point[k] all lie on a straight line
-                        # if point[k] is to the left of point[i] or it's to the
-                        # right of point[j], then point[i], point[j] cannot be
-                        # part of the convex hull of A
-                        if points[k] < points[i] or points[k] > points[j]:
-                            ij_part_of_convex_hull = False
-                            break
+                    # point[i], point[j], point[k] all lie on a straight line
+                    # if point[k] is to the left of point[i] or it's to the
+                    # right of point[j], then point[i], point[j] cannot be
+                    # part of the convex hull of A
+                    elif points[k] < points[i] or points[k] > points[j]:
+                        ij_part_of_convex_hull = False
+                        break
 
                 if points_left_of_ij and points_right_of_ij:
                     ij_part_of_convex_hull = False
@@ -299,7 +292,7 @@ def convex_hull_bf(points):
     return sorted(convex_set)
 
 
-def convex_hull_recursive(points):
+def convex_hull_recursive(points: list[Point]) -> list[Point]:
     """
     Constructs the convex hull of a set of 2D points using a divide-and-conquer strategy
     The algorithm exploits the geometric properties of the problem by repeatedly
@@ -369,7 +362,9 @@ def convex_hull_recursive(points):
     return sorted(convex_set)
 
 
-def _construct_hull(points, left, right, convex_set):
+def _construct_hull(
+    points: list[Point], left: Point, right: Point, convex_set: set[Point]
+) -> None:
     """
 
     Parameters
@@ -411,6 +406,77 @@ def _construct_hull(points, left, right, convex_set):
             _construct_hull(candidate_points, extreme_point, right, convex_set)
 
 
+def convex_hull_melkman(points: list[Point]) -> list[Point]:
+    """
+    Constructs the convex hull of a set of 2D points using the melkman algorithm.
+    The algorithm works by iteratively inserting points of a simple polygonal chain
+    (meaning that no line segments between two consecutive points cross each other).
+    Sorting the points yields such a polygonal chain.
+
+    For a detailed description, see http://cgm.cs.mcgill.ca/~athens/cs601/Melkman.html
+
+    Runtime: O(n log n) - O(n) if points are already sorted in the input
+
+    Parameters
+    ---------
+    points: array-like of object of Points, lists or tuples.
+    The set of 2d points for which the convex-hull is needed
+
+    Returns
+    ------
+    convex_set: list, the convex-hull of points sorted in non-decreasing order.
+
+    See Also
+    --------
+
+    Examples
+    ---------
+    >>> convex_hull_melkman([[0, 0], [1, 0], [10, 1]])
+    [(0.0, 0.0), (1.0, 0.0), (10.0, 1.0)]
+    >>> convex_hull_melkman([[0, 0], [1, 0], [10, 0]])
+    [(0.0, 0.0), (10.0, 0.0)]
+    >>> convex_hull_melkman([[-1, 1],[-1, -1], [0, 0], [0.5, 0.5], [1, -1], [1, 1],
+    ...                 [-0.75, 1]])
+    [(-1.0, -1.0), (-1.0, 1.0), (1.0, -1.0), (1.0, 1.0)]
+    >>> convex_hull_melkman([(0, 3), (2, 2), (1, 1), (2, 1), (3, 0), (0, 0), (3, 3),
+    ...                 (2, -1), (2, -4), (1, -3)])
+    [(0.0, 0.0), (0.0, 3.0), (1.0, -3.0), (2.0, -4.0), (3.0, 0.0), (3.0, 3.0)]
+    """
+    points = sorted(_validate_input(points))
+    n = len(points)
+
+    convex_hull = points[:2]
+    for i in range(2, n):
+        det = _det(convex_hull[1], convex_hull[0], points[i])
+        if det > 0:
+            convex_hull.insert(0, points[i])
+            break
+        elif det < 0:
+            convex_hull.append(points[i])
+            break
+        else:
+            convex_hull[1] = points[i]
+    i += 1
+
+    for j in range(i, n):
+        if (
+            _det(convex_hull[0], convex_hull[-1], points[j]) > 0
+            and _det(convex_hull[-1], convex_hull[0], points[1]) < 0
+        ):
+            # The point lies within the convex hull
+            continue
+
+        convex_hull.insert(0, points[j])
+        convex_hull.append(points[j])
+        while _det(convex_hull[0], convex_hull[1], convex_hull[2]) >= 0:
+            del convex_hull[1]
+        while _det(convex_hull[-1], convex_hull[-2], convex_hull[-3]) <= 0:
+            del convex_hull[-2]
+
+    # `convex_hull` is contains the convex hull in circular order
+    return sorted(convex_hull[1:] if len(convex_hull) > 3 else convex_hull)
+
+
 def main():
     points = [
         (0, 3),
@@ -426,9 +492,13 @@ def main():
     ]
     # the convex set of points is
     # [(0, 0), (0, 3), (1, -3), (2, -4), (3, 0), (3, 3)]
-    results_recursive = convex_hull_recursive(points)
     results_bf = convex_hull_bf(points)
+
+    results_recursive = convex_hull_recursive(points)
     assert results_bf == results_recursive
+
+    results_melkman = convex_hull_melkman(points)
+    assert results_bf == results_melkman
 
     print(results_bf)
 
